@@ -1,0 +1,2 @@
+-- Placeholder so Prisma can apply later migrations.
+-- Network error replay uses the existing NetworkError table from init.

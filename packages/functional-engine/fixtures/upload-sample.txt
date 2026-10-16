@@ -1,0 +1,1 @@
+QA scanner test upload. This file is a safe fixture and must not contain real customer data.

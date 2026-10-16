@@ -1,0 +1,592 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  name         String
+  passwordHash String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  projects     Project[]
+  settings     AppSettings?
+  sessions     Session[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([userId])
+}
+
+model Project {
+  id        String   @id @default(cuid())
+  name      String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  scans     Scan[]
+
+  @@index([userId])
+}
+
+model AppSettings {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  defaultMaxPages    Int      @default(100)
+  defaultMaxDepth    Int      @default(5)
+  timeoutMs          Int      @default(30000)
+  browser            String   @default("chromium")
+  viewport           String   @default("DESKTOP")
+  screenshotEnabled  Boolean  @default(true)
+  videoEnabled       Boolean  @default(true)
+  aiEnabled          Boolean  @default(true)
+  retentionDays      Int      @default(30)
+  concurrency        Int      @default(3)
+  crawlDelayMs       Int      @default(250)
+  maxScanDurationMs  Int      @default(1800000)
+  maxScreenshotBytes Int      @default(10485760)
+  respectRobotsTxt   Boolean  @default(true)
+  updatedAt          DateTime @updatedAt
+}
+
+enum ScanStatus {
+  QUEUED
+  INITIALIZING
+  CRAWLING
+  SCANNING
+  ANALYZING
+  VERIFYING
+  GENERATING_REPORT
+  COMPLETED
+  FAILED
+  CANCELLED
+  PAUSED
+}
+
+enum ViewportMode {
+  DESKTOP
+  TABLET
+  MOBILE
+  ALL
+}
+
+model Scan {
+  id             String     @id @default(cuid())
+  projectId      String
+  project        Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  url            String
+  host           String
+  status         ScanStatus @default(QUEUED)
+  errorMessage   String?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  cancelledAt    DateTime?
+  pagesDiscovered Int       @default(0)
+  pagesScanned   Int        @default(0)
+  pagesFailed    Int        @default(0)
+  issuesFound    Int        @default(0)
+  confirmedBugs  Int        @default(0)
+  progress       Int        @default(0)
+
+  overallScore       Int?
+  performanceScore   Int?
+  accessibilityScore Int?
+  seoScore           Int?
+  securityScore      Int?
+  functionalScore    Int?
+  visualScore        Int?
+  technicalScore     Int?
+  scoreBreakdown     Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  configuration  ScanConfiguration?
+  pages          Page[]
+  bugs           Bug[]
+  events         ScanEvent[]
+  reports        Report[]
+  consoleErrors  ConsoleError[]
+  networkErrors  NetworkError[]
+  workflowSteps  WorkflowStep[]
+  workflowData   WorkflowDatum[]
+  workflowGraph  WorkflowGraph?
+
+  @@index([projectId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([url])
+  @@index([host])
+}
+
+model ScanConfiguration {
+  id                 String       @id @default(cuid())
+  scanId             String       @unique
+  scan               Scan         @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  maxPages           Int          @default(100)
+  maxDepth           Int          @default(5)
+  viewport           ViewportMode @default(DESKTOP)
+  captureScreenshots Boolean      @default(true)
+  recordVideos       Boolean      @default(true)
+  aiAnalysis         Boolean      @default(true)
+  runFunctionalTests Boolean      @default(true)
+  runAccessibility   Boolean      @default(true)
+  runPerformance     Boolean      @default(true)
+  runSeo             Boolean      @default(true)
+  runSecurity        Boolean      @default(true)
+  timeoutMs          Int          @default(30000)
+  crawlDelayMs       Int          @default(250)
+  concurrency        Int          @default(3)
+  respectRobotsTxt   Boolean      @default(true)
+  testMode           String       @default("STANDARD")
+  browserEngine      String       @default("chromium")
+  coverage           String?
+  dataSeed           Int?
+  authorizedTest     Boolean      @default(false)
+}
+
+model WorkflowStep {
+  id            String   @id @default(cuid())
+  scanId        String
+  scan          Scan     @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  fingerprint   String
+  pageUrl       String
+  actionType    String
+  selector      String
+  status        String
+  reason        String?
+  expected      String?
+  observed      String?
+  redactedInput String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([scanId, fingerprint])
+  @@index([scanId])
+  @@index([status])
+}
+
+model WorkflowDatum {
+  id        String   @id @default(cuid())
+  scanId    String
+  scan      Scan     @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  entityKey String
+  fieldKey  String
+  value     String
+  sensitive Boolean  @default(false)
+  source    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([scanId, entityKey, fieldKey])
+  @@index([scanId])
+}
+
+model WorkflowGraph {
+  id        String   @id @default(cuid())
+  scanId    String   @unique
+  scan      Scan     @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  snapshot  Json
+  updatedAt DateTime @updatedAt
+}
+
+enum PageStatus {
+  DISCOVERED
+  QUEUED
+  SCANNING
+  SCANNED
+  FAILED
+  SKIPPED
+}
+
+model Page {
+  id              String     @id @default(cuid())
+  scanId          String
+  scan            Scan       @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  url             String
+  normalizedUrl   String
+  depth           Int        @default(0)
+  parentUrl       String?
+  status          PageStatus @default(DISCOVERED)
+  httpStatus      Int?
+  responseTimeMs  Int?
+  title           String?
+  metaDescription String?
+  canonical       String?
+  robotsMeta      String?
+  language        String?
+  htmlSize        Int?
+  resourceCount   Int?
+  viewport        String?
+  redirectedFrom  String?
+  headingsJson    Json?
+  cookiesJson     Json?
+  localStorageOk  Boolean?
+  httpsOk         Boolean?
+  tlsJson         Json?
+  errorMessage    String?
+  discoveredAt    DateTime   @default(now())
+  scannedAt       DateTime?
+
+  links            PageLink[]
+  images           PageImage[]
+  forms            PageForm[]
+  elements         PageElement[]
+  screenshots      Screenshot[]
+  consoleErrors    ConsoleError[]
+  networkErrors    NetworkError[]
+  performance      PerformanceMetric?
+  accessibility    AccessibilityIssue[]
+  seoIssues        SEOIssue[]
+  securityIssues   SecurityIssue[]
+
+  @@unique([scanId, normalizedUrl])
+  @@index([scanId])
+  @@index([url])
+  @@index([status])
+}
+
+model PageLink {
+  id         String  @id @default(cuid())
+  pageId     String
+  page       Page    @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  href       String
+  text       String?
+  isInternal Boolean
+  statusCode Int?
+  error      String?
+  isBroken   Boolean @default(false)
+
+  @@index([pageId])
+  @@index([isBroken])
+}
+
+model PageImage {
+  id            String  @id @default(cuid())
+  pageId        String
+  page          Page    @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  src           String
+  alt           String?
+  statusCode    Int?
+  naturalWidth  Int?
+  naturalHeight Int?
+  isBroken      Boolean @default(false)
+  error         String?
+
+  @@index([pageId])
+  @@index([isBroken])
+}
+
+model PageForm {
+  id         String  @id @default(cuid())
+  pageId     String
+  page       Page    @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  action     String?
+  method     String?
+  fieldCount Int     @default(0)
+  fieldsJson Json
+  hasSubmit  Boolean @default(false)
+
+  @@index([pageId])
+}
+
+model PageElement {
+  id       String  @id @default(cuid())
+  pageId   String
+  page     Page    @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  type     String
+  selector String?
+  text     String?
+  name     String?
+  role     String?
+  href     String?
+  visible  Boolean @default(true)
+  bounds   Json?
+  risk     String?
+
+  @@index([pageId])
+}
+
+model ConsoleError {
+  id          String   @id @default(cuid())
+  scanId      String
+  scan        Scan     @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  pageId      String?
+  page        Page?    @relation(fields: [pageId], references: [id], onDelete: SetNull)
+  type        String
+  message     String
+  stack       String?
+  fingerprint String
+  createdAt   DateTime @default(now())
+
+  @@index([scanId])
+  @@index([pageId])
+  @@index([fingerprint])
+}
+
+model NetworkError {
+  id           String   @id @default(cuid())
+  scanId       String
+  scan         Scan     @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  pageId       String?
+  page         Page?    @relation(fields: [pageId], references: [id], onDelete: SetNull)
+  requestUrl   String
+  method       String
+  statusCode   Int?
+  resourceType String?
+  initiator    String?
+  error        String?
+  fingerprint  String
+  createdAt    DateTime @default(now())
+
+  @@index([scanId])
+  @@index([pageId])
+  @@index([fingerprint])
+}
+
+model PerformanceMetric {
+  id                 String @id @default(cuid())
+  pageId             String @unique
+  page               Page   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  ttfbMs             Int?
+  domContentLoadedMs Int?
+  loadEventMs        Int?
+  fcpMs              Float?
+  lcpMs              Float?
+  cls                Float?
+  requestCount       Int?
+  transferSize       Int?
+  jsSize             Int?
+  cssSize            Int?
+  imageSize          Int?
+  longTaskCount      Int?
+  score              Int?
+}
+
+model AccessibilityIssue {
+  id          String @id @default(cuid())
+  pageId      String
+  page        Page   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  rule        String
+  severity    String
+  message     String
+  selector    String?
+  fingerprint String
+
+  @@index([pageId])
+  @@index([fingerprint])
+}
+
+model SEOIssue {
+  id          String @id @default(cuid())
+  pageId      String
+  page        Page   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  rule        String
+  severity    String
+  message     String
+  fingerprint String
+
+  @@index([pageId])
+  @@index([fingerprint])
+}
+
+model SecurityIssue {
+  id          String @id @default(cuid())
+  pageId      String
+  page        Page   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  rule        String
+  severity    String
+  message     String
+  fingerprint String
+
+  @@index([pageId])
+  @@index([fingerprint])
+}
+
+enum Severity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum Priority {
+  P0
+  P1
+  P2
+  P3
+}
+
+enum BugStatus {
+  OPEN
+  CONFIRMED
+  FALSE_POSITIVE
+  RESOLVED
+  IGNORED
+  UNVERIFIED
+}
+
+enum BugCategory {
+  FUNCTIONAL
+  VISUAL
+  ACCESSIBILITY
+  SEO
+  PERFORMANCE
+  SECURITY
+  TECHNICAL
+  BROKEN_LINK
+  BROKEN_IMAGE
+  JAVASCRIPT
+  NETWORK
+}
+
+model Bug {
+  id                String      @id @default(cuid())
+  bugNumber         String
+  scanId            String
+  scan              Scan        @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  title             String
+  description       String
+  category          BugCategory
+  severity          Severity
+  priority          Priority
+  status            BugStatus   @default(OPEN)
+  url               String
+  pageUrl           String?
+  expected          String?
+  actual            String?
+  stepsToReproduce  String?
+  rootCause         String?
+  technicalDetails  Json?
+  occurrences       Int         @default(1)
+  affectedUrls      Json
+  browser           String?
+  viewport          String?
+  fingerprint       String
+  confidence        Float?
+  aiAnalysis        String?
+  recommendedAction String?
+  verified          Boolean     @default(false)
+  source            String      @default("rule")
+  detectedAt        DateTime    @default(now())
+
+  evidence BugEvidence[]
+
+  @@unique([scanId, fingerprint])
+  @@index([scanId])
+  @@index([fingerprint])
+  @@index([status])
+  @@index([severity])
+  @@index([category])
+  @@index([url])
+}
+
+model BugEvidence {
+  id           String      @id @default(cuid())
+  bugId        String
+  bug          Bug         @relation(fields: [bugId], references: [id], onDelete: Cascade)
+  type         String
+  path         String?
+  mimeType     String?
+  metadata     Json?
+  screenshotId String?
+  screenshot   Screenshot? @relation(fields: [screenshotId], references: [id], onDelete: SetNull)
+  videoId      String?
+  video        Video?      @relation(fields: [videoId], references: [id], onDelete: SetNull)
+  traceId      String?
+  trace        Trace?      @relation(fields: [traceId], references: [id], onDelete: SetNull)
+
+  @@index([bugId])
+}
+
+model FileBlob {
+  id         String   @id @default(cuid())
+  storageKey String   @unique
+  mimeType   String
+  bytes      Bytes
+  byteSize   Int
+  createdAt  DateTime @default(now())
+}
+
+model Screenshot {
+  id         String        @id @default(cuid())
+  pageId     String?
+  page       Page?         @relation(fields: [pageId], references: [id], onDelete: SetNull)
+  kind       String
+  storageKey String
+  filePath   String
+  mimeType   String        @default("image/png")
+  width      Int?
+  height     Int?
+  viewport   String?
+  createdAt  DateTime      @default(now())
+  evidence   BugEvidence[]
+
+  @@index([pageId])
+}
+
+model Video {
+  id         String        @id @default(cuid())
+  storageKey String
+  filePath   String
+  mimeType   String        @default("video/webm")
+  durationMs Int?
+  createdAt  DateTime      @default(now())
+  evidence   BugEvidence[]
+}
+
+model Trace {
+  id         String        @id @default(cuid())
+  storageKey String
+  filePath   String
+  createdAt  DateTime      @default(now())
+  evidence   BugEvidence[]
+}
+
+enum ReportFormat {
+  HTML
+  PDF
+  XLSX
+  JSON
+  CSV
+}
+
+model Report {
+  id         String       @id @default(cuid())
+  scanId     String
+  scan       Scan         @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  format     ReportFormat
+  storageKey String
+  filePath   String
+  fileName   String
+  createdAt  DateTime     @default(now())
+
+  @@index([scanId])
+}
+
+model ScanEvent {
+  id        String   @id @default(cuid())
+  scanId    String
+  scan      Scan     @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  type      String
+  message   String
+  payload   Json?
+  createdAt DateTime @default(now())
+
+  @@index([scanId])
+  @@index([createdAt])
+}

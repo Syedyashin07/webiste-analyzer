@@ -1,0 +1,40 @@
+{
+  "name": "@qa-scanner/api",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "worker": "tsx src/worker.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.2",
+    "@fastify/rate-limit": "^10.2.1",
+    "@prisma/client": "^6.5.0",
+    "@qa-scanner/accessibility-engine": "1.0.0",
+    "@qa-scanner/ai-engine": "1.0.0",
+    "@qa-scanner/browser": "1.0.0",
+    "@qa-scanner/crawler": "1.0.0",
+    "@qa-scanner/evidence-engine": "1.0.0",
+    "@qa-scanner/functional-engine": "1.0.0",
+    "@qa-scanner/health-engine": "1.0.0",
+    "@qa-scanner/parser": "1.0.0",
+    "@qa-scanner/performance-engine": "1.0.0",
+    "@qa-scanner/report-engine": "1.0.0",
+    "@qa-scanner/security-engine": "1.0.0",
+    "@qa-scanner/seo-engine": "1.0.0",
+    "@qa-scanner/shared": "1.0.0",
+    "@qa-scanner/visual-engine": "1.0.0",
+    "bullmq": "^5.34.5",
+    "fastify": "^5.2.1",
+    "ioredis": "^5.4.2",
+    "p-limit": "^6.2.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

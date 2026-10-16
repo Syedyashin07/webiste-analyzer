@@ -1,0 +1,14 @@
+{
+  "name": "@qa-scanner/shared",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "pino": "^9.6.0",
+    "zod": "^3.24.1"
+  }
+}

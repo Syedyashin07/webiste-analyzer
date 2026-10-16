@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Page" ADD COLUMN "httpsOk" BOOLEAN;
+ALTER TABLE "Page" ADD COLUMN "tlsJson" JSONB;

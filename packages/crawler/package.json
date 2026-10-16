@@ -1,0 +1,11 @@
+{
+  "name": "@qa-scanner/crawler",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@qa-scanner/shared": "1.0.0"
+  }
+}

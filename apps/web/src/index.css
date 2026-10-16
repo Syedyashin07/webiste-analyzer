@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+}
+
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  background-color: #fffbf5;
+}
+
+:focus-visible {
+  @apply outline-2 outline-offset-2 outline-brand-700;
+}
+
+main h1 {
+  letter-spacing: -0.02em;
+}
+
+@keyframes auth-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes auth-from-right {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.auth-from-left {
+  animation: auth-from-left 0.55s ease both;
+}
+
+.auth-field:focus,
+.auth-field:focus-visible {
+  outline: none;
+  outline-offset: 0;
+}

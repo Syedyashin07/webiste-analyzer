@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+  <head>
+    <title>QA</title>
+    <style>
+      .overflow { width: 2400px; }
+      button.hidden-btn { opacity: 0; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <nav>
+        <a href="/about">About</a>
+        <a href="/broken-page">Broken internal</a>
+        <a href="/contact">Contact</a>
+      </nav>
+    </header>
+    <h2>Home without H1</h2>
+    <p class="overflow">This row is intentionally too wide for a mobile viewport and should trigger overflow detection.</p>
+    <img src="/missing-image.png" />
+    <img src="/missing-image.png" alt="" />
+    <button class="hidden-btn">Hidden action</button>
+    <button></button>
+    <a href="/about"></a>
+    <form action="/contact" method="post">
+      <input type="email" name="email" required />
+      <button type="submit">Send</button>
+    </form>
+    <button id="broken-button">Click me</button>
+    <script src="/status/500"></script>
+    <script src="/slow.js"></script>
+    <script>
+      console.error("TypeError: Cannot read properties of undefined");
+      throw new Error("TypeError: Cannot read properties of undefined");
+    </script>
+    <script>
+      document.getElementById("broken-button").addEventListener("click", () => {
+        throw new Error("Broken button handler");
+      });
+    </script>
+  </body>
+</html>
